@@ -17,7 +17,7 @@ export const fetchCustomers = async () => {
 
   const response = await fetch(`https://api.github.com/gists/${gistId}`, {
     headers: {
-      Authorization: `token ${token}`,
+      Authorization: `Bearer ${token}`,
       'Accept': 'application/vnd.github.v3+json'
     }
   });
@@ -51,7 +51,7 @@ export const saveCustomers = async (customers) => {
   const response = await fetch(`https://api.github.com/gists/${gistId}`, {
     method: 'PATCH',
     headers: {
-      Authorization: `token ${token}`,
+      Authorization: `Bearer ${token}`,
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
     },
