@@ -1,33 +1,23 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { fetchCustomers, saveCustomers, getSettings } from './services/githubService';
+import { fetchCustomers, saveCustomer, deleteCustomer } from './services/supabaseService';
 import CustomerList from './components/CustomerList.vue';
 import CustomerModal from './components/CustomerModal.vue';
-import Settings from './components/Settings.vue';
 
 const customers = ref([]);
 const loading = ref(false);
 const showModal = ref(false);
 const editingCustomer = ref(null);
 const currentView = ref('dashboard'); // 'dashboard', 'settings'
-const isConfigured = ref(false);
-
-const checkConfig = () => {
-  const settings = getSettings();
-  isConfigured.value = !!(settings.token && settings.gistId);
-  if (isConfigured.value) {
-    loadData();
-  } else {
-    currentView.value = 'settings';
-  }
-};
+// No configuration needed for Supabase as it's hardcoded for now
+const isConfigured = ref(true);
 
 const loadData = async () => {
-  if (!isConfigured.value) return;
   loading.value = true;
   try {
     customers.value = await fetchCustomers();
   } catch (error) {
+    console.error('Fetch error:', error);
     alert('載入失敗: ' + error.message);
   } finally {
     loading.value = false;
@@ -35,18 +25,10 @@ const loadData = async () => {
 };
 
 const handleSaveCustomer = async (formData) => {
-  let newList = [...customers.value];
-  if (editingCustomer.value) {
-    const index = newList.findIndex(c => c.id === editingCustomer.value.id);
-    newList[index] = { ...formData, id: editingCustomer.value.id };
-  } else {
-    newList.push({ ...formData, id: Date.now() });
-  }
-
   try {
     loading.value = true;
-    await saveCustomers(newList);
-    customers.value = newList;
+    await saveCustomer({ ...formData, id: editingCustomer.value?.id });
+    await loadData(); // Reload from Supabase
     showModal.value = false;
   } catch (error) {
     alert('儲存失敗: ' + error.message);
@@ -58,11 +40,10 @@ const handleSaveCustomer = async (formData) => {
 const handleDeleteCustomer = async (id) => {
   if (!confirm('確定要刪除這位客戶嗎？')) return;
   
-  const newList = customers.value.filter(c => c.id !== id);
   try {
     loading.value = true;
-    await saveCustomers(newList);
-    customers.value = newList;
+    await deleteCustomer(id);
+    await loadData();
   } catch (error) {
     alert('刪除失敗: ' + error.message);
   } finally {
@@ -81,7 +62,7 @@ const openEditModal = (customer) => {
 };
 
 onMounted(() => {
-  checkConfig();
+  loadData();
 });
 </script>
 
@@ -95,60 +76,35 @@ onMounted(() => {
     <nav class="nav">
       <a 
         href="#" 
-        :class="{ active: currentView === 'dashboard' }"
-        @click.prevent="currentView = 'dashboard'"
+        class="active"
       >
         <span class="nav-icon">📊</span> 儀表板
-      </a>
-      <a 
-        href="#" 
-        :class="{ active: currentView === 'settings' }"
-        @click.prevent="currentView = 'settings'"
-      >
-        <span class="nav-icon">⚙️</span> 系統設定
       </a>
     </nav>
 
     <div class="sidebar-footer">
-      <div v-if="isConfigured" class="status-indicator">
-        <span class="dot"></span> 已連至 GitHub
+      <div class="status-indicator">
+        <span class="dot"></span> 已連線至 Supabase
       </div>
     </div>
   </aside>
 
   <main class="container">
-    <header class="main-header">
-      <div v-if="currentView === 'dashboard'">
-        <h1>客戶總覽</h1>
-        <p class="subtitle">管理您的客戶資料與追蹤進度</p>
-      </div>
-      <div v-else>
-        <h1>系統設定</h1>
-        <p class="subtitle">配置您的 GitHub API 存取憑證</p>
-      </div>
-    </header>
+    <div>
+      <header class="main-header">
+        <div>
+          <h1>客戶總覽</h1>
+          <p class="subtitle">管理您的客戶資料與追蹤進度</p>
+        </div>
+      </header>
 
-    <div v-if="currentView === 'dashboard'">
-      <div v-if="!isConfigured" class="glass-card animate-fade" style="padding: 40px; text-align: center;">
-        <h3>尚未設定資料庫</h3>
-        <p style="margin: 15px 0 25px; color: var(--text-muted);">
-          請先前往設定頁面配置您的 GitHub Token 與 Gist ID 才能開始使用。
-        </p>
-        <button @click="currentView = 'settings'" class="btn btn-primary">前往設定</button>
-      </div>
-      
       <CustomerList 
-        v-else
         :customers="customers"
         :loading="loading"
         @add="openAddModal"
         @edit="openEditModal"
         @delete="handleDeleteCustomer"
       />
-    </div>
-
-    <div v-else>
-      <Settings @settings-saved="checkConfig" />
     </div>
 
     <CustomerModal 

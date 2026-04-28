@@ -2,8 +2,8 @@ const GITHUB_ACCESS_TOKEN = 'crm_github_token';
 const GITHUB_GIST_ID = 'crm_github_gist_id';
 
 export const getSettings = () => ({
-  token: localStorage.getItem(GITHUB_ACCESS_TOKEN) || '',
-  gistId: localStorage.getItem(GITHUB_GIST_ID) || ''
+  token: (localStorage.getItem(GITHUB_ACCESS_TOKEN) || '').trim(),
+  gistId: (localStorage.getItem(GITHUB_GIST_ID) || '').trim()
 });
 
 export const saveSettings = (token, gistId) => {
