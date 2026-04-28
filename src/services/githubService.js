@@ -23,8 +23,10 @@ export const fetchCustomers = async () => {
   });
 
   if (!response.ok) {
-    if (response.status === 404) throw new Error('Gist not found');
-    throw new Error('Failed to fetch data from GitHub');
+    if (response.status === 401) throw new Error('Token 無效或已過期 (401)');
+    if (response.status === 403) throw new Error('Token 權限不足，請檢查是否勾選 gist (403)');
+    if (response.status === 404) throw new Error('找不到 Gist ID，請檢查 ID 是否正確 (404)');
+    throw new Error(`連線失敗 (${response.status}): Failed to fetch data`);
   }
 
   const gist = await response.json();
